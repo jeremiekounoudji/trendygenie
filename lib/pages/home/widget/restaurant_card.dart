@@ -22,7 +22,7 @@ class CompanyCard extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         // Get.to(() => ServiceDetailsPage(company: company));
-        Get.to(() => CompanyServicesPage(companyId: company.id!, categoryName: company.category.name, companyName: company.name));
+        Get.to(() => CompanyServicesPage(companyId: company.id!, categoryName: company.category?.name??"", companyName: company.name));
       },
       child: Container(
         margin: const EdgeInsets.only(right: 16, bottom: 8),

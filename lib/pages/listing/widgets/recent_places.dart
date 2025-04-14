@@ -117,7 +117,7 @@ class _RecentPlacesState extends State<RecentPlaces> {
 
   Widget _buildCompanyCard(CompanyModel company, double imageHeight, double containerHeight) {
     return InkWell(
-      onTap: () => Get.to(() => CompanyServicesPage(companyId: company.id!, categoryName: company.category.name, companyName: company.name)),
+      onTap: () => Get.to(() => CompanyServicesPage(companyId: company.id!, categoryName: company.category?.name??"", companyName: company.name)),
       child: Container(
       height: containerHeight,
       decoration: BoxDecoration(

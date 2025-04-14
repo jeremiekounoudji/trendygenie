@@ -31,37 +31,77 @@ class _RegisterStepThreeState extends State<RegisterStepThree> {
     if (controller.validateStepThree()) {
       isLoading.value = true;
       try {
+        // Get current authenticated user from Supabase Auth
+        final authUser = authController.currentUser.value;
+        
+        if (authUser == null) {
+          Get.snackbar(
+            'Error',
+            'No authenticated user found',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+          return;
+        }
+        
+        // Create user model with the authenticated user's ID
         final user = UserModel(
-          id: authController.currentUser.value!.id,
-          email: authController.currentUser.value!.email!,
+          id: authUser.id,
+          email: authUser.email!,
           fullName: '${controller.firstNameController.text} ${controller.lastNameController.text}',
           phoneNumber: controller.phoneController.text,
           userType: controller.accountType.value,
           isEmailVerified: false,
           isPhoneVerified: false,
-          preferences: UserPreferences(),
+          preferences: UserPreferences(
+            userId: authUser.id,
+            language: 'en',
+            currency: 'USD',
+            pushNotifications: true,
+            emailNotifications: true,
+            smsNotifications: true,
+          ),
           isActive: true,
           createdAt: DateTime.now(),
         );
 
-        log('user: ${user.toJson().toString()}');
+        log('Creating/updating user: ${user.toJson().toString()}');
         final success = await userController.createUser(user);
         
         if (success) {
+          log('User registration successful, proceeding to next step');
           if (controller.accountType.value == 'provider') {
             Get.to(() => RegisterStepTwo(), transition: Transition.rightToLeft);
           } else {
             Get.offAllNamed('/home');
           }
         } else {
+          // Show the specific error message
+          final errorMsg = userController.errorMessage.value.isNotEmpty 
+              ? userController.errorMessage.value 
+              : 'Failed to create user profile';
+              
+          log('User registration failed: $errorMsg');
           Get.snackbar(
-            'Error',
-            userController.errorMessage.value,
+            'Registration Error',
+            errorMsg,
             snackPosition: SnackPosition.BOTTOM,
             backgroundColor: Colors.red,
             colorText: Colors.white,
+            duration: Duration(seconds: 5),
           );
         }
+      } catch (e) {
+        log('Error during account type selection: $e');
+        Get.snackbar(
+          'Error',
+          'An unexpected error occurred: $e',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          duration: Duration(seconds: 5),
+        );
       } finally {
         isLoading.value = false;
       }

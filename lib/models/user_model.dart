@@ -1,24 +1,23 @@
+import 'enums.dart';
+
 class UserModel {
   final String id;
   final String fullName;
   final String email;
   final String phoneNumber;
   final String? profileImage;
-  final String userType; // 'customer' or 'provider'
+  final String userType; // This stays as string for database compatibility
   final DateTime createdAt;
   final bool isActive;
   
-  // Provider specific fields
-  // final ProviderDetails? providerDetails;
-  
-  // User preferences and settings
-  final UserPreferences preferences;
+  // User preferences and settings (now as a related entity)
+  final UserPreferences? preferences;
   
   // Authentication related
   final bool isEmailVerified;
   final bool isPhoneVerified;
   
-  // Location data
+  // Location data (now as a related entity)
   final UserLocation? location;
 
   UserModel({
@@ -30,8 +29,7 @@ class UserModel {
     required this.userType,
     required this.createdAt,
     required this.isActive,
-    // this.providerDetails,
-    required this.preferences,
+    this.preferences,
     required this.isEmailVerified,
     required this.isPhoneVerified,
     this.location,
@@ -49,22 +47,15 @@ class UserModel {
           ? DateTime.parse(json['created_at']) 
           : DateTime.now(),
       isActive: json['is_active'] ?? true,
-      // providerDetails: json['provider_details'] != null 
-      //     ? ProviderDetails.fromJson(json['provider_details'])
-      //     : null,
-      preferences: json['preferences'] != null 
-          ? UserPreferences.fromJson(json['preferences'])
-          : UserPreferences(),
+      preferences: null, // Will be loaded separately from user_preferences table
       isEmailVerified: json['is_email_verified'] ?? false,
       isPhoneVerified: json['is_phone_verified'] ?? false,
-      location: json['location'] != null 
-          ? UserLocation.fromJson(json['location'])
-          : null,
+      location: null, // Will be loaded separately from user_locations table
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
+    final Map<String, dynamic> data = {
       'id': id,
       'full_name': fullName,
       'email': email,
@@ -73,137 +64,131 @@ class UserModel {
       'user_type': userType,
       'created_at': createdAt.toIso8601String(),
       'is_active': isActive,
-      // 'provider_details': providerDetails?.toJson(),
-      'preferences': preferences.toJson(),
       'is_email_verified': isEmailVerified,
       'is_phone_verified': isPhoneVerified,
-      'location': location?.toJson(),
     };
-  }
-}
 
-class ProviderDetails {
-  final String businessName;
-  final String businessDescription;
-  final List<String> serviceCategories;
-  final List<String> serviceAreas;
-  final String? businessLicense;
-  final List<String>? certificates;
-  final double? rating;
-  final int? completedServices;
-
-  ProviderDetails({
-    required this.businessName,
-    required this.businessDescription,
-    required this.serviceCategories,
-    required this.serviceAreas,
-    this.businessLicense,
-    this.certificates,
-    this.rating,
-    this.completedServices,
-  });
-
-  factory ProviderDetails.fromJson(Map<String, dynamic> json) {
-    return ProviderDetails(
-      businessName: json['business_name'] ?? '',
-      businessDescription: json['business_description'] ?? '',
-      serviceCategories: List<String>.from(json['service_categories'] ?? []),
-      serviceAreas: List<String>.from(json['service_areas'] ?? []),
-      businessLicense: json['business_license'],
-      certificates: json['certificates'] != null 
-          ? List<String>.from(json['certificates'])
-          : null,
-      rating: json['rating']?.toDouble(),
-      completedServices: json['completed_services'],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'businessName': businessName,
-      'business_description': businessDescription,
-      'service_categories': serviceCategories,
-      'service_areas': serviceAreas,
-      'business_license': businessLicense,
-      'certificates': certificates,
-      'rating': rating,
-      'completed_services': completedServices,
-    };
+    return data;
   }
 }
 
 class UserPreferences {
-  final String? language;
-  final String? currency;
+  final String? id;
+  String? userId;
+  final String language;
+  final String currency;
   final bool pushNotifications;
   final bool emailNotifications;
   final bool smsNotifications;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   UserPreferences({
+    this.id,
+    this.userId,
     this.language = 'en',
     this.currency = 'USD',
     this.pushNotifications = true,
     this.emailNotifications = true,
     this.smsNotifications = true,
+    this.createdAt,
+    this.updatedAt,
   });
 
   factory UserPreferences.fromJson(Map<String, dynamic> json) {
     return UserPreferences(
+      id: json['id'],
+      userId: json['user_id'],
       language: json['language'] ?? 'en',
       currency: json['currency'] ?? 'USD',
       pushNotifications: json['push_notifications'] ?? true,
       emailNotifications: json['email_notifications'] ?? true,
       smsNotifications: json['sms_notifications'] ?? true,
+      createdAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at']) 
+          : null,
+      updatedAt: json['updated_at'] != null 
+          ? DateTime.parse(json['updated_at']) 
+          : null,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
+    final Map<String, dynamic> data = {
       'language': language,
       'currency': currency,
       'push_notifications': pushNotifications,
       'email_notifications': emailNotifications,
       'sms_notifications': smsNotifications,
     };
+    
+    // Only include id if it exists
+    if (id != null) {
+      data['id'] = id;
+    }
+    
+    // userId will be added in controller
+    return data;
   }
 }
 
 class UserLocation {
-  final double latitude;
-  final double longitude;
-  final String address;
+  final String? id;
+  String? userId;
+  final double? latitude;
+  final double? longitude;
+  final String? address;
   final String? city;
   final String? country;
   final String? postalCode;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   UserLocation({
-    required this.latitude,
-    required this.longitude,
-    required this.address,
+    this.id,
+    this.userId,
+    this.latitude,
+    this.longitude,
+    this.address,
     this.city,
     this.country,
     this.postalCode,
+    this.createdAt,
+    this.updatedAt,
   });
 
   factory UserLocation.fromJson(Map<String, dynamic> json) {
     return UserLocation(
-      latitude: json['latitude']?.toDouble() ?? 0.0,
-      longitude: json['longitude']?.toDouble() ?? 0.0,
-      address: json['address'] ?? '',
+      id: json['id'],
+      userId: json['user_id'],
+      latitude: json['latitude'] != null ? double.parse(json['latitude'].toString()) : null,
+      longitude: json['longitude'] != null ? double.parse(json['longitude'].toString()) : null,
+      address: json['address'],
       city: json['city'],
       country: json['country'],
       postalCode: json['postal_code'],
+      createdAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at']) 
+          : null,
+      updatedAt: json['updated_at'] != null 
+          ? DateTime.parse(json['updated_at']) 
+          : null,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'latitude': latitude,
-      'longitude': longitude,
-      'address': address,
-      'city': city,
-      'country': country,
-      'postal_code': postalCode,
-    };
+    final Map<String, dynamic> data = {};
+    
+    // Only include fields that are not null
+    if (id != null) data['id'] = id;
+    if (latitude != null) data['latitude'] = latitude;
+    if (longitude != null) data['longitude'] = longitude;
+    if (address != null) data['address'] = address;
+    if (city != null) data['city'] = city;
+    if (country != null) data['country'] = country;
+    if (postalCode != null) data['postal_code'] = postalCode;
+    
+    // userId will be added in controller
+    return data;
   }
 } 

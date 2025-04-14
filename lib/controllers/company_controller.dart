@@ -16,6 +16,7 @@ class CompanyController extends GetxController {
 
   // companies map to store different lists of companies
   final RxMap<String, List<CompanyModel>> companiesMap = <String, List<CompanyModel>>{}.obs;
+  final RxList<CompanyModel> ownerCompaniesMap = <CompanyModel>[].obs;
 
   @override
   void onInit() {
@@ -94,20 +95,10 @@ class CompanyController extends GetxController {
       final filePath = 'company_logos/$fileName';
 
       // Upload to Supabase Storage
-      final response = await supabase
-          .storage
-          .from('public')
-          .uploadBinary(filePath, bytes);
-
-      // if (response.statusCode != 200) {
-      //   throw response.statusCode.toString();
-      // }
+      await supabase.storage.from('company-files').uploadBinary(filePath, bytes);
 
       // Get public URL
-      final imageUrl = supabase
-          .storage
-          .from('public')
-          .getPublicUrl(filePath);
+      final imageUrl = supabase.storage.from('company-files').getPublicUrl(filePath);
 
       // Update company logo in database
       return await updateField('company_logo', imageUrl);
@@ -189,34 +180,53 @@ class CompanyController extends GetxController {
 
       // Upload logo
       currentUploadFile.value = 'company logo';
+      uploadProgress.value = 0.33;
       final logoUrl = await _uploadFile(logo, 'logos');
       
       // Upload owner ID
       currentUploadFile.value = 'owner ID';
+      uploadProgress.value = 0.66;
       final ownerIdUrl = await _uploadFile(ownerId, 'documents');
       
       // Upload selfie
       currentUploadFile.value = 'selfie photo';
+      uploadProgress.value = 0.99;
       final selfieUrl = await _uploadFile(selfie, 'documents');
 
+      log('Files uploaded successfully');
+      
+      // Include fields that exist in the database
+      final companyData = {
+        'name': company.name,
+        'registration_number': company.registrationNumber,
+        'address': company.address,
+        'owner_id': company.ownerId,
+        // Use plain string for status instead of enum to match database type
+        'status': 'pending',
+        'created_at': company.createdAt.toIso8601String(),
+        'company_logo': logoUrl,
+        'owner_id_image': ownerIdUrl,
+        'selfie_image': selfieUrl,
+      };
+      
+      log('Sending data to database: $companyData');
+      
       final response = await supabase
           .from('companies')
-          .insert({
-            ...company.toJson(),
-            'company_logo': logoUrl,
-            'owner_id_image': ownerIdUrl,
-            'selfie_image': selfieUrl,
-          })
+          .insert(companyData)
           .execute();
 
       if (response.status != 201) {
+        log('Error creating company: Status ${response.status}');
         throw 'Error: Status ${response.status}';
       }
 
       currentUploadFile.value = '';
+      uploadProgress.value = 0.0;
       isLoading.value = false;
       return true;
     } catch (e) {
+      log('Failed to create company: $e');
       errorMessage.value = e.toString();
       isLoading.value = false;
       return false;
@@ -230,9 +240,15 @@ class CompanyController extends GetxController {
       final fileName = '${DateTime.now().toIso8601String()}.$fileExt';
       final filePath = '$folder/$fileName';
 
-      await supabase.storage.from('public').uploadBinary(filePath, bytes);
-      return supabase.storage.from('public').getPublicUrl(filePath);
+      log('Uploading file to company-files/$filePath');
+      
+      await supabase.storage.from('company-files').uploadBinary(filePath, bytes);
+      final fileUrl = supabase.storage.from('company-files').getPublicUrl(filePath);
+      
+      log('File uploaded successfully: $fileUrl');
+      return fileUrl;
     } catch (e) {
+      log('Upload error: $e');
       throw 'Failed to upload ${file.path}: $e';
     }
   }
@@ -274,7 +290,6 @@ class CompanyController extends GetxController {
     }
   }
 
-
   Future<List<CompanyModel>> fetchCompaniesByCategory({
     required String categoryName,
     required int page,
@@ -301,6 +316,42 @@ class CompanyController extends GetxController {
           .toList();
     } catch (e) {
       print('Error fetching companies by category: $e');
+      return [];
+    }
+  }
+
+  Future<List<CompanyModel>> getCompanyByOwner(String ownerId) async {
+    try {
+      isLoading.value = true;
+      error.value = '';
+      
+      final response = await supabase
+          .from('companies')
+          .select('''
+            *,
+            category:categories (
+              *
+            )
+          ''')
+          .eq('owner_id', ownerId)
+          .order('created_at', ascending: false)
+          .execute();
+
+      if (response.status != 200) {
+        throw 'Error: Status ${response.status}';
+      }
+
+      ownerCompaniesMap.value = (response.data as List)
+          .map((json) => CompanyModel.fromJson(json))
+          .toList();
+
+      
+      isLoading.value = false;
+      return ownerCompaniesMap.value;
+    } catch (e) {
+      log('Error fetching owner companies: $e');
+      isLoading.value = false;
+      error.value = 'Failed to fetch owner companies: $e';
       return [];
     }
   }

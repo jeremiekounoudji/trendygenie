@@ -2,9 +2,12 @@ import 'dart:developer';
 
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../pages/authentication/forgot_password/forgot_password_page.dart';
+import '../pages/authentication/login/login_page.dart';
 import '../services/supabase_service.dart';
 import 'register_controller.dart';
 import 'user_controller.dart';
+import '../pages/home/home_page.dart';
 
 class AuthController extends GetxController {
   final isLoading = false.obs;
@@ -12,7 +15,6 @@ class AuthController extends GetxController {
   final authError = RxString('');
 
   final registerController = Get.put(RegisterController());
-  // Determine and navigate to appropriate route
   final userController = Get.put(UserController());
 
   Rx<User?> currentUser = Rx<User?>(null);
@@ -42,12 +44,11 @@ class AuthController extends GetxController {
       final response = await SupabaseService.client.auth.signUp(
         email: email,
         password: password,
-
-        // data: {
-        //   'email': email,
-        //   'full_name': fullName,
-        //   'phone_number': phoneNumber,
-        // },
+        data: {
+          'full_name': fullName,
+          'phone_number': phoneNumber ?? '',
+          // Don't include fields that don't exist in the schema
+        },
       );
 
       if (response.user != null) {
@@ -79,30 +80,77 @@ class AuthController extends GetxController {
     try {
       isLoading.value = true;
       authError.value = '';
+      
+      log('Attempting to sign in user: $email');
 
+      // Step 1: Authenticate user
       final response = await SupabaseService.client.auth.signInWithPassword(
         email: email,
         password: password,
       );
 
-      if (response.user != null) {
-        currentUser.value = response.user;
-
-        final initialRoute = await userController.determineInitialRoute();
-        Get.offAllNamed(initialRoute);
-
+      if (response.user == null) {
+        log('Authentication failed: Invalid credentials');
+        authError.value = 'Invalid email or password';
+        return false;
+      }
+      
+      // Step 2: Store authenticated user
+      currentUser.value = response.user;
+      log('User authenticated successfully: ${currentUser.value?.id}');
+      
+      try {
+        // Step 3: Determine user type and appropriate route
+         await userController.determineInitialRoute();
+        return true;
+      } catch (routeError) {
+        log('Error determining route: $routeError');
+        authError.value = 'Error loading user profile: $routeError';
+        
+        // Even if route determination fails, the user is still logged in
+        Get.offAllNamed('/home');
         return true;
       }
-
-      authError.value = 'Invalid credentials';
-      return false;
     } catch (e) {
-      authError.value = e.toString();
+      log('Login error: $e');
+      if (e is AuthException) {
+        authError.value = e.message;
+      } else {
+        authError.value = 'Login failed: $e';
+      }
       return false;
     } finally {
       isLoading.value = false;
     }
   }
+
+  // // Helper method to navigate based on route string
+  // void _navigateToInitialRoute(String route) {
+  //   switch (route) {
+  //     case '/register/type-selection':
+  //       Get.offAll(() => TypeSelectionPage());
+  //       break;
+  //     case '/register/company-details':
+  //       Get.offAll(() => CompanyDetailsPage());
+  //       break;
+  //     case '/certification-pending':
+  //       Get.offAll(() => CertificationPendingPage());
+  //       break;
+  //     case '/certification-rejected':
+  //       Get.offAll(() => CertificationRejectedPage());
+  //       break;
+  //     case '/provider/dashboard':
+  //       Get.offAll(() => ProviderDashboardPage());
+  //       break;
+  //     case '/customer/home':
+  //       Get.offAll(() => CustomerHomePage());
+  //       break;
+  //     case '/home':
+  //     default:
+  //       Get.offAll(() => HomePage());
+  //       break;
+  //   }
+  // }
 
   // Send Password Reset Email
   Future<bool> sendPasswordResetEmail(String email) async {
@@ -175,10 +223,63 @@ class AuthController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    checkAuth();
+    log('Initializing AuthController...');
+    
+    // Check initial auth state
+    final currentSession = SupabaseService.client.auth.currentSession;
+    final user = SupabaseService.client.auth.currentUser;
+    
+    isAuthenticated.value = user != null && currentSession != null;
+    currentUser.value = user;
+    
+    if (isAuthenticated.value) {
+      log('User is already authenticated: ${user?.id}');
+      // Use Future.delayed to ensure the widget tree is built before navigation
+      Future.delayed(const Duration(milliseconds: 100), () async {
+        isLoading.value = true;
+        try {
+           await userController.determineInitialRoute();
+        } catch (e) {
+          log('Error determining route for authenticated user: $e');
+          Get.offAllNamed('/home');
+        } finally {
+          isLoading.value = false;
+        }
+      });
+    } else {
+      log('No authenticated user found');
+    }
+    
+    // Listen for auth state changes
     SupabaseService.client.auth.onAuthStateChange.listen((data) {
-      registerController.isLoading.value = false;
+      log('Auth state changed: ${data.event}');
+      final AuthChangeEvent event = data.event;
+      
+      // Update authentication status
       isAuthenticated.value = data.session != null;
+      
+      // Handle different auth events
+      switch (event) {
+        case AuthChangeEvent.signedIn:
+          log('User signed in: ${data.session?.user.id}');
+          currentUser.value = data.session?.user;
+          break;
+        case AuthChangeEvent.signedOut:
+          log('User signed out');
+          currentUser.value = null;
+          Get.offAll(() => LoginPage());
+          break;
+        case AuthChangeEvent.userUpdated:
+          log('User updated: ${data.session?.user.id}');
+          currentUser.value = data.session?.user;
+          break;
+        case AuthChangeEvent.passwordRecovery:
+          log('Password recovery initiated');
+          Get.offAll(() => ForgotPasswordPage(),transition: Transition.leftToRightWithFade);
+          break;
+        default:
+          log('Unhandled auth event: $event');
+      }
     });
   }
 }

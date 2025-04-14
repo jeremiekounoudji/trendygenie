@@ -13,7 +13,7 @@ class CompanyModel {
   final String name;
   final String registrationNumber;
   final String address;
-  final CategoryModel category;
+  final CategoryModel? category;
   final String? categoryId;
   final String ownerId;
   final CompanyStatus status;
@@ -22,8 +22,8 @@ class CompanyModel {
   
   // Documents and verification
   final String? companyLogo;
-  final String? ownerIdDocument;
-  final String? selfiePhoto;
+  final String? ownerIdImage;
+  final String? selfieImage;
   final bool isVerified;
   
   // Business details
@@ -46,19 +46,19 @@ class CompanyModel {
   final int reviewCount;
   
   CompanyModel({
-     this.id,
+    this.id,
     required this.name,
     required this.registrationNumber,
     required this.address,
-    required this.category,
-     this.categoryId,
+    this.category,
+    this.categoryId,
     required this.ownerId,
     required this.status,
     required this.createdAt,
     this.approvedAt,
     this.companyLogo,
-    this.ownerIdDocument,
-    this.selfiePhoto,
+    this.ownerIdImage,
+    this.selfieImage,
     this.isVerified = false,
     this.description,
     this.website,
@@ -77,14 +77,13 @@ class CompanyModel {
 
   factory CompanyModel.fromJson(Map<String, dynamic> json) {
     return CompanyModel(
-      
       id: json['id'] ?? '',
       name: json['name'] ?? '',
       registrationNumber: json['registration_number'] ?? '',
       address: json['address'] ?? '',
       category: json['category'] is Map 
           ? CategoryModel.fromJson(json['category'] as Map<String, dynamic>)
-          : CategoryModel(id: json['category'] ?? '', name: ''),
+          : null,
       ownerId: json['owner_id'] ?? '',
       status: CompanyStatus.values.firstWhere(
         (e) => e.toString() == 'CompanyStatus.${json['status'] ?? 'pending'}',
@@ -95,8 +94,8 @@ class CompanyModel {
           ? DateTime.parse(json['approved_at']) 
           : null,
       companyLogo: json['company_logo'],
-      ownerIdDocument: json['owner_id_document'],
-      selfiePhoto: json['selfie_photo'],
+      ownerIdImage: json['owner_id_image'],
+      selfieImage: json['selfie_image'],
       isVerified: json['is_verified'] ?? false,
       description: json['description'],
       website: json['website'],
@@ -128,8 +127,8 @@ class CompanyModel {
       'created_at': createdAt.toIso8601String(),
       'approved_at': approvedAt?.toIso8601String(),
       'company_logo': companyLogo,
-      'owner_id_document': ownerIdDocument,
-      'selfie_photo': selfiePhoto,
+      'owner_id_image': ownerIdImage,
+      'selfie_image': selfieImage,
       'is_verified': isVerified,
       'description': description,
       'website': website,
@@ -159,8 +158,8 @@ class CompanyModel {
     DateTime? createdAt,
     DateTime? approvedAt,
     String? companyLogo,
-    String? ownerIdDocument,
-    String? selfiePhoto,
+    String? ownerIdImage,
+    String? selfieImage,
     bool? isVerified,
     String? description,
     String? website,
@@ -188,8 +187,8 @@ class CompanyModel {
       createdAt: createdAt ?? this.createdAt,
       approvedAt: approvedAt ?? this.approvedAt,
       companyLogo: companyLogo ?? this.companyLogo,
-      ownerIdDocument: ownerIdDocument ?? this.ownerIdDocument,
-      selfiePhoto: selfiePhoto ?? this.selfiePhoto,
+      ownerIdImage: ownerIdImage ?? this.ownerIdImage,
+      selfieImage: selfieImage ?? this.selfieImage,
       isVerified: isVerified ?? this.isVerified,
       description: description ?? this.description,
       website: website ?? this.website,

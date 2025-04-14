@@ -14,9 +14,7 @@ class RegisterController extends GetxController {
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
 
-
   final companyAddressController = TextEditingController();
-  final companyCategoryController = TextEditingController();
   final companyRegNumberController = TextEditingController();
   final shippingAddressController = TextEditingController();
 
@@ -24,7 +22,6 @@ class RegisterController extends GetxController {
   final ownerIdImage = Rx<XFile?>(null);
   final selfieImage = Rx<XFile?>(null);
 
-  final Rx<String> selectedCategory = ''.obs;
   final isLoading = false.obs;
   final isPasswordVisible = false.obs;
   final formKey = GlobalKey<FormState>();
@@ -92,8 +89,17 @@ class RegisterController extends GetxController {
 
   @override
   void onClose() {
+    firstNameController.dispose();
+    lastNameController.dispose();
+    dateOfBirthController.dispose();
+    passwordController.dispose();
+    emailController.dispose();
+    phoneController.dispose();
+    companyNameController.dispose();
+    companyAddressController.dispose();
+    companyRegNumberController.dispose();
+    shippingAddressController.dispose();
     confirmPasswordController.dispose();
-    // ... other disposals
     super.onClose();
   }
 }

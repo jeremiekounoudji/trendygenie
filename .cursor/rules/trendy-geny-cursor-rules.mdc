@@ -1,0 +1,19 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+DISClAMER
+A- routing
+ 1-never use named route for navigation with Getx
+
+  (NEVER DO LIKE THIS: NOT GOOD: Get.offAllNamed('/certification-pending');)
+  (AWAYS DO LIKE THIS: GOOD: Get.offAll(()=>CertificationPendingPage()))
+
+B- MVC Patern
+   1-Always create and use models. Create ennums for things like status,types and all other feels that need
+C- Custom widget and colors
+   1-always use CustomText (globalVariable),commonButton widget if exist
+   2- always use predefined color accross the app. you can play with the opacity and other things, but aways use predefined colors defined inside globalVariables.dart
+   3-use Utility class controller to show customsnack bars and custom dialogs. but is the design did not match, you can create a separate custom widget and use it inside a flutter natif dialog widget
