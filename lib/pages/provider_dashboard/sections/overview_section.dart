@@ -1,197 +1,187 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:fl_chart/fl_chart.dart';
-import '../../../utils/global_variables.dart';
-import '../../../widgets/responsive_layout.dart';
-import '../../../widgets/stat_card.dart';
-import '../../../widgets/animated_counter.dart';
+import '../../../controllers/order_controller.dart';
+import '../../../controllers/company_controller.dart';
+import '../../../utils/globalVariable.dart';
+import '../../../widgets/general_widgets/shimmer.dart';
+import '../widgets/dashboard_metric_card.dart';
+import '../widgets/recent_orders_list.dart';
 
-class OverviewSection extends StatelessWidget {
+class OverviewSection extends StatefulWidget {
   const OverviewSection({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(),
-          const SizedBox(height: 24),
-          _buildStatCards(),
-          const SizedBox(height: 24),
-          _buildChartSection(),
-          const SizedBox(height: 24),
-          _buildRecentActivity(),
-        ],
-      ),
-    );
-  }
+  State<OverviewSection> createState() => _OverviewSectionState();
+}
 
-  Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
+class _OverviewSectionState extends State<OverviewSection> {
+  final OrderController orderController = Get.put(OrderController());
+  final CompanyController companyController = Get.find<CompanyController>();
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+  
+  Future<void> _loadData() async {
+    final userId = Get.find<CompanyController>().supabase.auth.currentUser!.id;
+    await orderController.fetchDashboardMetrics(userId);
+    await orderController.fetchRecentOrders(userId);
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Dashboard Overview',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: GlobalVariables.primaryColor,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Welcome back, John!',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-              ),
-            ),
+            _buildHeader(),
+            const SizedBox(height: 24),
+            _buildDashboardMetrics(),
+            const SizedBox(height: 32),
+            _buildRecentOrdersSection(),
           ],
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
-                spreadRadius: 1,
-                blurRadius: 10,
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.calendar_today, color: GlobalVariables.primaryColor),
-              const SizedBox(width: 8),
-              Text(
-                'Last 30 Days',
-                style: TextStyle(color: GlobalVariables.primaryColor),
-              ),
-              Icon(Icons.arrow_drop_down, color: GlobalVariables.primaryColor),
-            ],
-          ),
+      ),
+    );
+  }
+  
+  Widget _buildHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CustomText(
+          text: 'Provider Dashboard',
+          fontSize: 28,
+          fontWeight: FontWeight.bold,
+          color: blackColor,
+        ),
+        const SizedBox(height: 8),
+        CustomText(
+          text: 'Monitor your business performance and manage orders',
+          fontSize: 14,
+          fontWeight: FontWeight.normal,
+          color: Colors.grey[600]!,
         ),
       ],
     );
   }
-
-  Widget _buildStatCards() {
+  
+  Widget _buildDashboardMetrics() {
+    return Obx(() {
+      if (orderController.isLoading.value && 
+          orderController.totalBusinesses.value == 0) {
+        return _buildMetricsLoadingShimmer();
+      }
+      
+      return GridView.count(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        children: [
+          DashboardMetricCard(
+            title: 'Total Businesses',
+            value: orderController.totalBusinesses.value.toString(),
+            icon: Icons.business,
+            color: firstColor,
+          ),
+          DashboardMetricCard(
+            title: 'Total Orders',
+            value: orderController.totalOrders.value.toString(),
+            icon: Icons.shopping_cart,
+            color: secondColor,
+          ),
+          DashboardMetricCard(
+            title: 'Total Revenue',
+            value: '\$${orderController.totalAmountGenerated.value.toStringAsFixed(2)}',
+            icon: Icons.attach_money,
+            color: thirdColor,
+          ),
+          DashboardMetricCard(
+            title: 'Total Clients',
+            value: orderController.totalClients.value.toString(),
+            icon: Icons.people,
+            color: Colors.purple,
+          ),
+        ],
+      );
+    });
+  }
+  
+  Widget _buildMetricsLoadingShimmer() {
     return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: ResponsiveLayout.isMobile(Get.context!) ? 2 : 4,
+      crossAxisCount: 2,
       crossAxisSpacing: 16,
       mainAxisSpacing: 16,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      children: List.generate(
+        4, 
+        (index) => LoadingShimmer(
+          h: 120,
+          w: double.infinity,
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildRecentOrdersSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        StatCard(
-          title: 'Total Sales',
-          value: 2547,
-          icon: Icons.shopping_cart,
-          color: GlobalVariables.primaryColor,
-          increase: 12.5,
+        CustomText(
+          text: 'Recent Orders',
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: blackColor,
         ),
-        StatCard(
-          title: 'Total Revenue',
-          value: 15420,
-          icon: Icons.attach_money,
-          color: GlobalVariables.secondaryColor,
-          increase: 8.2,
-          isCurrency: true,
-        ),
-        StatCard(
-          title: 'Total Orders',
-          value: 1123,
-          icon: Icons.local_shipping,
-          color: GlobalVariables.accentColor,
-          increase: -2.4,
-        ),
-        StatCard(
-          title: 'Total Customers',
-          value: 892,
-          icon: Icons.people,
-          color: Color(0xFF6C63FF),
-          increase: 5.7,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildChartSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Revenue Overview',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: GlobalVariables.primaryColor,
-            ),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 300,
-            child: LineChart(
-              LineChartData(
-                // Chart configuration here
-                // You'll need to implement the chart data based on your needs
+        const SizedBox(height: 16),
+        Obx(() {
+          if (orderController.isLoading.value && 
+              orderController.recentOrders.isEmpty) {
+            return ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: 5,
+              itemBuilder: (context, index) => Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: LoadingShimmer(
+                  h: 80,
+                  w: double.infinity,
+                ),
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecentActivity() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Recent Activity',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: GlobalVariables.primaryColor,
-            ),
-          ),
-          const SizedBox(height: 20),
-          // Add your activity list here
-        ],
-      ),
+            );
+          }
+          
+          if (orderController.recentOrders.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32.0),
+                child: Column(
+                  children: [
+                    Icon(Icons.hourglass_empty, size: 48, color: Colors.grey[400]),
+                    const SizedBox(height: 16),
+                    CustomText(
+                      text: 'No recent orders found',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[600]!,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          
+          return RecentOrdersList(orders: orderController.recentOrders);
+        }),
+      ],
     );
   }
 } 

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../utils/global_variables.dart';
+import '../../utils/globalVariable.dart';
 import '../../widgets/responsive_layout.dart';
 import 'sections/overview_section.dart';
-import 'sections/services_section.dart';
+import 'sections/business_section.dart';
 import 'sections/company_section.dart';
 import 'sections/support_section.dart';
 
@@ -11,10 +11,12 @@ class ProviderDashboardScreen extends StatelessWidget {
   final RxInt currentIndex = 0.obs;
   final List<Widget> sections = [
     const OverviewSection(),
-    const ServicesSection(),
+    const BusinessSection(),
     const CompanySection(),
     const SupportSection(),
   ];
+
+  ProviderDashboardScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -26,8 +28,11 @@ class ProviderDashboardScreen extends StatelessWidget {
       ),
       floatingActionButton: Obx(() => currentIndex.value == 1 
         ? FloatingActionButton(
-            onPressed: () => Get.toNamed('/add-service'),
-            backgroundColor: GlobalVariables.primaryColor,
+            onPressed: () {
+              // Navigate to add business page
+              // Get.to(() => CreateBusinessPage());
+            },
+            backgroundColor: firstColor,
             child: const Icon(Icons.add),
           )
         : const SizedBox()),
@@ -43,13 +48,13 @@ class ProviderDashboardScreen extends StatelessWidget {
             label: 'Overview',
           ),
           NavigationDestination(
-            icon: Icon(Icons.room_service_outlined),
-            selectedIcon: Icon(Icons.room_service),
-            label: 'Services',
-          ),
-          NavigationDestination(
             icon: Icon(Icons.business_outlined),
             selectedIcon: Icon(Icons.business),
+            label: 'Businesses',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.account_circle_outlined),
+            selectedIcon: Icon(Icons.account_circle),
             label: 'Company',
           ),
           NavigationDestination(
@@ -82,13 +87,13 @@ class ProviderDashboardScreen extends StatelessWidget {
               label: Text('Overview'),
             ),
             NavigationRailDestination(
-              icon: Icon(Icons.room_service_outlined),
-              selectedIcon: Icon(Icons.room_service),
-              label: Text('Services'),
-            ),
-            NavigationRailDestination(
               icon: Icon(Icons.business_outlined),
               selectedIcon: Icon(Icons.business),
+              label: Text('Businesses'),
+            ),
+            NavigationRailDestination(
+              icon: Icon(Icons.account_circle_outlined),
+              selectedIcon: Icon(Icons.account_circle),
               label: Text('Company'),
             ),
             NavigationRailDestination(
@@ -121,13 +126,13 @@ class ProviderDashboardScreen extends StatelessWidget {
               label: Text('Overview'),
             ),
             NavigationRailDestination(
-              icon: Icon(Icons.room_service_outlined),
-              selectedIcon: Icon(Icons.room_service),
-              label: Text('Services'),
-            ),
-            NavigationRailDestination(
               icon: Icon(Icons.business_outlined),
               selectedIcon: Icon(Icons.business),
+              label: Text('Businesses'),
+            ),
+            NavigationRailDestination(
+              icon: Icon(Icons.account_circle_outlined),
+              selectedIcon: Icon(Icons.account_circle),
               label: Text('Company'),
             ),
             NavigationRailDestination(

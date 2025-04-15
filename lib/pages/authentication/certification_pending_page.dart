@@ -50,8 +50,8 @@ class CertificationPendingPage extends StatelessWidget {
                     ),
                     padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                         // Profile icon
                         Container(
                           width: 40,
@@ -108,7 +108,7 @@ class CertificationPendingPage extends StatelessWidget {
                       fontSize: 24,
                         fontWeight: FontWeight.bold,
                       color: Colors.black87,
-                    ),
+                      ),
                     textAlign: TextAlign.center,
                   ),
                   
@@ -145,7 +145,7 @@ class CertificationPendingPage extends StatelessWidget {
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),
-                    ),
+                      ),
                       ),
                     ],
                   ),

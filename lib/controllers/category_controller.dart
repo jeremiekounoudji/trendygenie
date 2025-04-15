@@ -24,7 +24,10 @@ class CategoryController extends GetxController {
       
       final response = await supabase
           .from('categories')
-          .select()
+          .select('''
+            *,
+            subcategories(*)
+          ''')
           .execute();
 
       if (response.status != 200 && response.status != 201) {
@@ -42,6 +45,51 @@ class CategoryController extends GetxController {
       log(e.toString());
       isLoading.value = false;
       error.value = 'Failed to fetch categories: $e';
+      return false;
+    }
+  }
+
+  // Fetch all subcategories
+  RxList<SubCategoryModel> subCategories = <SubCategoryModel>[].obs;
+  
+  Future<bool> fetchSubCategories() async {
+    try {
+      isLoading.value = true;
+      error.value = '';
+      
+      // If we already have categories with subcategories, extract them
+      if (categories.isNotEmpty) {
+        subCategories.clear();
+        for (var category in categories) {
+          subCategories.addAll(category.subCategories);
+        }
+        isLoading.value = false;
+        return true;
+      }
+      
+      // Otherwise fetch them directly from the database
+      final response = await supabase
+          .from('subcategories')
+          .select('''
+            *,
+            parent_category_id:categories(*)
+          ''')
+          .execute();
+
+      if (response.status != 200 && response.status != 201) {
+        throw 'Error: Status ${response.status}';
+      }
+      
+      subCategories.value = (response.data as List)
+          .map((json) => SubCategoryModel.fromJson(json))
+          .toList();
+      
+      isLoading.value = false;
+      return true;
+    } catch (e) {
+      log(e.toString());
+      isLoading.value = false;
+      error.value = 'Failed to fetch subcategories: $e';
       return false;
     }
   }
@@ -145,7 +193,7 @@ class CategoryController extends GetxController {
       error.value = '';
 
       final response = await supabase
-          .from('sub_categories')
+          .from('subcategories')
           .insert({
             'name': subCategory.name,
             'description': subCategory.description,
@@ -173,7 +221,7 @@ class CategoryController extends GetxController {
       error.value = '';
 
       final response = await supabase
-          .from('sub_categories')
+          .from('subcategories')
           .delete()
           .eq('id', subCategoryId)
           .execute();

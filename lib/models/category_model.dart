@@ -7,6 +7,7 @@ class CategoryModel {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final bool? isActive;
+  final List<SubCategoryModel> subCategories;
 
   CategoryModel({
     required this.id,
@@ -15,6 +16,7 @@ class CategoryModel {
     this.createdAt,
     this.updatedAt,
     this.isActive,
+    this.subCategories = const [],
   });
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,9 @@ class CategoryModel {
           ? DateTime.parse(json['updated_at']) 
           : null,
       isActive: json['is_active'],
+      subCategories: json['sub_categories'] != null
+          ? (json['sub_categories'] as List).map((subCat) => SubCategoryModel.fromJson(subCat)).toList()
+          : [],
     );
   }
 
@@ -40,6 +45,7 @@ class CategoryModel {
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
       'is_active': isActive,
+      'sub_categories': subCategories.map((subCat) => subCat.toJson()).toList(),
     };
   }
 }

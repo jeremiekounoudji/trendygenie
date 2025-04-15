@@ -338,7 +338,7 @@ class _RegisterStepFourState extends State<RegisterStepFour> {
               final result = await _picker.pickImage(source: ImageSource.gallery);
               if (result != null) {
                 file.value = result;
-              }
+    }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: firstColor,
@@ -481,7 +481,7 @@ class _RegisterStepFourState extends State<RegisterStepFour> {
         backgroundColor: Colors.red,
         colorText: Colors.white,
         duration: const Duration(seconds: 5),
-      );
+    );
     } finally {
       isProcessing.value = false;
     }

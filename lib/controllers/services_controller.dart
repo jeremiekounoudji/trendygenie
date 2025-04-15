@@ -206,4 +206,52 @@ class ServicesController extends GetxController {
   List<ServiceItem> get topServices => servicesMap['top'] ?? [];
   List<ServiceItem> get nearServices => servicesMap['near'] ?? [];
   List<ServiceItem> get popularServices => servicesMap['popular'] ?? [];
+  
+  // Fetch services for a specific business with pagination
+  Future<bool> fetchServicesForBusiness(String businessId, int page, int limit) async {
+    try {
+      isLoading.value = true;
+      error.value = '';
+
+      final from = page * limit;
+      final to = from + limit - 1;
+
+      final response = await supabase
+          .from('services')
+          .select('''
+            *,
+            category:subcategories (
+              *,
+              parent_category_id:categories (*)
+            )
+          ''')
+          .eq('business_id', businessId)
+          .range(from, to)
+          .order('created_at', ascending: false)
+          .execute();
+
+      if (response.status != 200) {
+        throw 'Error: Status ${response.status}';
+      }
+
+      if (page == 0) {
+        services.value = (response.data as List)
+            .map((json) => ServiceItem.fromJson(json))
+            .toList();
+      } else {
+        final newServices = (response.data as List)
+            .map((json) => ServiceItem.fromJson(json))
+            .toList();
+        services.addAll(newServices);
+      }
+
+      isLoading.value = false;
+      return true;
+    } catch (e) {
+      log('Error fetching business services: $e');
+      isLoading.value = false;
+      error.value = 'Failed to fetch business services: $e';
+      return false;
+    }
+  }
 }
